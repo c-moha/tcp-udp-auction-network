@@ -57,5 +57,3 @@ A multithreaded, socket-based auction platform built in Java that simulates a di
 | Version Control | Git + GitHub |
 
 ---
-
-## 📁 Project Structure
