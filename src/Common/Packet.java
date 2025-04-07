@@ -43,4 +43,18 @@ public class Packet {
         return new Packet(type, rq, otherAttr);
     }
 
+    public String getMessage() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(type).append("|").append(RQ);
+
+        if (other != null) {
+            for (String attr : other) {
+                sb.append("|").append(attr);
+            }
+        }
+
+        return sb.toString();
+    }
+
 }

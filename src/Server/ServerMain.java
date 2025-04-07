@@ -18,6 +18,9 @@ public class ServerMain {
         Thread UdpThread = new Thread(new UDP_Listener(udp));
         Thread TcpThread = new Thread(new TCP_Listener(tcp));
 
+        UdpThread.start();
+        TcpThread.start();
+
     }
 
 }
