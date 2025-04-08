@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 import Common.DataUsers;
+import Common.Packet;
 import Common.UserInfo;
 
 public class UDP_Request implements Runnable {
@@ -34,6 +35,7 @@ public class UDP_Request implements Runnable {
         }
 
         String command = parts[0].toUpperCase();
+        System.out.println("\nReceived a request of type: " + command);
 
         switch (command) {
             case "REGISTER":
@@ -43,6 +45,16 @@ public class UDP_Request implements Runnable {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
+                break;
+
+            case "LOGIN":
+
+                break;
+
+            case "DE-REGISTER":
+
+                deregisterReq(parts);
+
                 break;
 
             // Continue here for the different types of requests/commands
@@ -69,18 +81,57 @@ public class UDP_Request implements Runnable {
         boolean success = DataUsers.registerUser(user);
 
         if (success) {
-            send = new DatagramSocket();
-            buffer = "Success".getBytes();
-            packet = new DatagramPacket(buffer, buffer.length, clientIP, clientPort);
-            send.send(packet);
+            Packet response = new Packet("REGISTERED", Packet.getCount(), "");
+            sendUDP(response, clientIP, clientPort);
             System.out.println("Success, we are able to register: " + name + "," + password);
 
         } else {
-            send = new DatagramSocket();
-            buffer = "Failed".getBytes();
-            packet = new DatagramPacket(buffer, buffer.length, clientIP, clientPort);
-            send.send(packet);
+            Packet response = new Packet("REGISTER-DENIED", Packet.getCount(), "");
+            sendUDP(response, clientIP, clientPort);
+            System.out.println("Failed, we are un-able to register: " + name + "," + password);
         }
+    }
+
+    public void deregisterReq(String[] parts) {
+        if (parts.length != 3) {
+            // sendReply("REGISTER_FAIL|Invalid format");
+            return;
+        }
+
+        String rq = parts[1];
+        int index = parts[2].indexOf(",");
+        String name = parts[2].substring(0, index);
+        String password = parts[2].substring(index + 1);
+        boolean success = DataUsers.deregisterUser(name);
+
+        if (success) {
+            Packet response = new Packet("DE-REGISTERED", Packet.getCount(), "");
+            sendUDP(response, clientIP, clientPort);
+            System.out.println("Success, we are able to register: " + name + "," + password);
+
+        } else {
+            Packet response = new Packet("DE-REGISTERED-DENIED", Packet.getCount(), "");
+            sendUDP(response, clientIP, clientPort);
+            System.out.println("Failed, we are un-able to de-register: " + name + "," + password);
+        }
+
+    }
+
+    static void sendUDP(Packet pack, InetAddress ip, int tcp) {
+        String message = pack.getMessage();
+        System.out.println("Sending this message:" + message);
+        try {
+
+            DatagramSocket socket = new DatagramSocket();
+            byte[] data = message.getBytes();
+
+            DatagramPacket packet = new DatagramPacket(data, data.length, ip, tcp);
+            socket.send(packet);
+            socket.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
 }
