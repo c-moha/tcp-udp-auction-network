@@ -48,7 +48,7 @@ public class UDP_Request implements Runnable {
                 break;
 
             case "LOGIN":
-
+                logIn(parts);
                 break;
 
             case "DE-REGISTER":
@@ -115,6 +115,32 @@ public class UDP_Request implements Runnable {
             System.out.println("Failed, we are un-able to de-register: " + name + "," + password);
         }
 
+    }
+
+    public void logIn(String[] parts) {
+
+        if (parts.length != 3) {
+            System.out.println("Wrong size");
+            return;
+        }
+        String rq = parts[1];
+        int index = parts[2].indexOf(",");
+        String name = parts[2].substring(0, index);
+        String password = parts[2].substring(index + 1);
+
+        Boolean success = DataUsers.checkCredentials(name, password);
+
+        if (success) {
+
+            Packet response = new Packet("LOGGED-IN", Packet.getCount());
+            sendUDP(response, clientIP, clientPort);
+            System.out.println("Success, we are able to log-in: " + name + "," + password);
+
+        } else {
+            Packet response = new Packet("LOGIN-DENIED", Packet.getCount());
+            sendUDP(response, clientIP, clientPort);
+            System.out.println("Failed, we are un-able to log-in: " + name + "," + password);
+        }
     }
 
     static void sendUDP(Packet pack, InetAddress ip, int tcp) {

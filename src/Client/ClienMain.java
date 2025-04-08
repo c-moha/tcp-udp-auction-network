@@ -55,7 +55,7 @@ public class ClienMain {
     }
 
     static void login() throws UnknownHostException {
-        String Username, Pw, Role;
+        String Username, Pw;
         System.out.printf("Please Enter Your Credentials to LogIn");
         do {
             System.out.printf("Username:");
@@ -66,16 +66,7 @@ public class ClienMain {
             Pw = scanner.nextLine().trim();
         } while (Pw.isEmpty());
 
-        while (true) {
-            System.out.println("Role (Buyer/Seller):");
-            Role = scanner.nextLine().trim();
-            if (Role.toUpperCase().equals("BUYER") || Role.toUpperCase().equals("SELLER")) {
-                break;
-            }
-        }
-
-        Packet pack = new Packet("LOGIN", Packet.getCount(), Username + "," + Pw, Role, getIP(),
-                String.valueOf(UDP_PORT), String.valueOf(TCP_PORT));
+        Packet pack = new Packet("LOGIN", Packet.getCount(), Username + "," + Pw);
 
         sendUDP(pack);
     }
