@@ -5,7 +5,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.HashMap;
+
+import Server.BroadcastSystem;
 
 public class DataUsers {
     private static final String FILE_NAME = "clients.dat";
@@ -25,6 +30,9 @@ public class DataUsers {
             return false;
         }
 
+        if (user.getRole().equals("BUYER")) {
+            BroadcastSystem.addBuyer(new InetSocketAddress(user.getIpAddress(), Integer.parseInt(user.getUdpPort())));
+        }
         users.put(user.getName(), user);
         // Persistence here by saving the user
         saveUsers();

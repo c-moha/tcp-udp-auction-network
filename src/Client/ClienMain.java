@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import Common.ItemDatabase;
+import Common.Items;
 import Common.Packet;
 
 public class ClienMain {
@@ -15,6 +17,9 @@ public class ClienMain {
     private static final Scanner scanner = new Scanner(System.in);
     private static final int UDP_PORT = 6200;
     private static final int TCP_PORT = 5200;
+    private static boolean isLoggedIn = false;
+    private static String loggedInUsername = "";
+    private static String userRole = "";
 
     public static void main(String[] args) throws IOException {
 
@@ -43,6 +48,14 @@ public class ClienMain {
 
                 default:
                     continue;
+            }
+
+            if (isLoggedIn) {
+                if (userRole.equalsIgnoreCase("SELLER")) {
+                    sellerMenu();
+                } else if (userRole.equalsIgnoreCase("BUYER")) {
+                    buyerMenu();
+                }
             }
 
         }
@@ -136,7 +149,28 @@ public class ClienMain {
             socket.receive(response);
 
             String reply = new String(response.getData(), 0, response.getLength()).trim();
-            System.out.println("Server replied: " + reply);
+
+            if (reply.startsWith("LOGGED-IN")) {
+                isLoggedIn = true;
+                String[] elements = reply.split("\\|");
+                String role = elements[elements.length - 1].trim();
+                userRole = role;
+            } else if (reply.startsWith("ITEM_LIST|")) {
+                String[] parts = reply.substring(10).split(";");
+                System.out.println("\n--- Active Items ---");
+                for (String item : parts) {
+                    String[] fields = item.split("\\|");
+                    if (fields.length >= 4) {
+                        System.out.println("Item: " + fields[0]);
+                        System.out.println("Description: " + fields[1]);
+                        System.out.println("Price: " + fields[2]);
+                        System.out.println("Time Remaining: " + fields[3] + " sec");
+                        System.out.println("-------------------------");
+                    }
+                }
+            } else {
+                System.out.println("Server replied: " + reply);
+            }
 
             socket.close();
         } catch (Exception e) {
@@ -145,7 +179,102 @@ public class ClienMain {
 
     }
 
+    static void sellerMenu() throws UnknownHostException {
+        while (isLoggedIn && userRole.equalsIgnoreCase("SELLER")) {
+            System.out.println("\nSELLER MENU:\n1) List an item\n2) Logout");
+            String choice = scanner.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    listItem();
+                    break;
+                case "2":
+                    isLoggedIn = false;
+                    loggedInUsername = "";
+                    userRole = "";
+                    System.out.println("Logged out.");
+                    return;
+                default:
+                    System.out.println("Invalid choice.");
+            }
+        }
+    }
+
+    static void buyerMenu() throws UnknownHostException {
+        while (isLoggedIn && userRole.equalsIgnoreCase("BUYER")) {
+            System.out.println("\nBUYER MENU:\n1) View active auctions\n2) Bid on item\n3) Logout");
+            String choice = scanner.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    requestItemList();
+                    break;
+
+                case "2":
+                    bidItem(); // NEW
+                    break;
+
+                case "3":
+                    isLoggedIn = false;
+                    loggedInUsername = "";
+                    userRole = "";
+                    System.out.println("Logged out.");
+                    return;
+
+                default:
+                    System.out.println("Invalid choice.");
+            }
+        }
+    }
+
+    public static void bidItem() {
+        System.out.print("Enter the item name to bid on: ");
+        String itemName = scanner.nextLine().trim();
+
+        System.out.print("Enter your bid amount: ");
+        String bidInput = scanner.nextLine().trim();
+
+        double bidAmount;
+        try {
+            bidAmount = Double.parseDouble(bidInput);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid bid amount format.");
+            return;
+        }
+
+        Packet pack = new Packet("BID_ITEM", Packet.getCount(), itemName, String.valueOf(bidAmount));
+        sendUDP(pack);
+    }
+
+    static void listItem() throws UnknownHostException {
+        String itemName, description;
+        double price;
+        int duration;
+
+        System.out.print("Item Name: ");
+        itemName = scanner.nextLine().trim();
+
+        System.out.print("Description: ");
+        description = scanner.nextLine().trim();
+
+        System.out.print("Starting Price: ");
+        price = Double.parseDouble(scanner.nextLine().trim());
+
+        System.out.print("Auction Duration (in seconds): ");
+        duration = Integer.parseInt(scanner.nextLine().trim());
+
+        Packet pack = new Packet("LIST_ITEM", Packet.getCount(), itemName, description, String.valueOf(price),
+                String.valueOf(duration));
+        sendUDP(pack);
+    }
+
+    static void requestItemList() {
+        Packet pack = new Packet("VIEW_ITEMS", Packet.getCount());
+        sendUDP(pack);
+    }
+
     static void sendTCP() {
 
     }
+
 }
