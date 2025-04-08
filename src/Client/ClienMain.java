@@ -13,23 +13,19 @@ import Common.Packet;
 public class ClienMain {
     private Socket socket;
     private static final Scanner scanner = new Scanner(System.in);
-    private static final int UDP_PORT = 6000;
-    private static final int TCP_PORT = 5000;
+    private static final int UDP_PORT = 6200;
+    private static final int TCP_PORT = 5200;
 
     public static void main(String[] args) throws IOException {
-        int TCP_Port = TCP_PORT;
-        int UDP_Port = UDP_PORT;
 
         System.out.println("The plateform is starting...");
         System.out.println("Welcome to our P2P auction system.");
         String command = "";
         while (true) {
-
             if (command.contains("exit")) {
                 break;
             }
             System.out.println("Select a valid choice: \n1) Login\n2) Register");
-
             command = scanner.nextLine().trim();
 
             switch (command) {
@@ -43,11 +39,8 @@ public class ClienMain {
 
                 default:
                     continue;
-
             }
-
         }
-
     }
 
     public static String getIP() throws UnknownHostException {
@@ -56,27 +49,33 @@ public class ClienMain {
         return ipAddress;
     }
 
-    static void login() {
-        String Username, Pw, Cred;
-        int comIndex = -1;
-        while (comIndex == -1) {
-            System.out.println("Please Enter Your Credentials in the format of Username,Password:");
-            Cred = scanner.nextLine().trim();
-            comIndex = Cred.indexOf(",");
-            if (comIndex != -1) {
-                Username = Cred.substring(0, comIndex);
-                Pw = Cred.substring(comIndex + 1, Cred.length());
+    static void login() throws UnknownHostException {
+        String Username, Pw, Role;
+
+        System.out.printf("Please Enter Your Credentials to LogIn\nUsername:");
+        Username = scanner.nextLine().trim();
+        System.out.printf("Password:");
+        Pw = scanner.nextLine().trim();
+        while (true) {
+            System.out.println("Wished Role (Buyer/Seller):");
+            Role = scanner.nextLine().trim();
+            if (Role.toUpperCase().equals("BUYER") || Role.toUpperCase().equals("SELLER")) {
                 break;
             }
         }
+
+        Packet pack = new Packet("LOGIN", "1234", Username + "," + Pw, Role, getIP(),
+                String.valueOf(UDP_PORT), String.valueOf(TCP_PORT));
+
+        sendUDP(pack);
     }
 
     static void register() throws UnknownHostException {
         String regUsername, regPw, regRole;
 
-        System.out.println("Please Enter Your Credentials\n Username:");
+        System.out.printf("Please Enter Your Credentials to Register\nUsername:");
         regUsername = scanner.nextLine().trim();
-        System.out.println("Password:");
+        System.out.printf("Password:");
         regPw = scanner.nextLine().trim();
         while (true) {
             System.out.println("Wished Role (Buyer/Seller):");
@@ -85,18 +84,17 @@ public class ClienMain {
                 break;
             }
         }
-
         Packet pack = new Packet("REGISTER", "1234", regUsername + "," + regPw, regRole, getIP(),
                 String.valueOf(UDP_PORT), String.valueOf(TCP_PORT));
-
-        // Will only exit the loop when the right format is followed with "Username,Pw"
+        sendUDP(pack);
     }
 
     static void sendUDP(Packet pack) {
         String message = pack.getMessage();
+        System.out.println("Sending this message:" + message);
         try {
             InetAddress serverAddress = InetAddress.getByName("localhost");
-            int serverPort = 6000;
+            int serverPort = UDP_PORT;
 
             DatagramSocket socket = new DatagramSocket();
             byte[] data = message.getBytes();

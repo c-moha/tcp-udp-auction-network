@@ -1,16 +1,27 @@
 package Server;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 import Common.DataUsers;
 import Common.UserInfo;
 
 public class UDP_Request implements Runnable {
+    private static final int UDP_PORT = 6200;
 
-    DatagramPacket packet;
+    public DatagramPacket packet;
+    public DatagramSocket send;
+    public InetAddress clientIP;
+    public int clientPort;
+
+    public byte[] buffer = new byte[1024];
 
     public UDP_Request(DatagramPacket pack) {
         this.packet = pack;
+        this.clientIP = this.packet.getAddress();
+        this.clientPort = this.packet.getPort();
     }
 
     @Override
@@ -26,13 +37,20 @@ public class UDP_Request implements Runnable {
 
         switch (command) {
             case "REGISTER":
-
+                try {
+                    registrationReq(parts);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 break;
+
+            // Continue here for the different types of requests/commands
         }
 
     }
 
-    public void registrationReq(String[] parts) {
+    public void registrationReq(String[] parts) throws IOException {
         if (parts.length != 7) {
             // sendReply("REGISTER_FAIL|Invalid format");
             return;
@@ -51,9 +69,17 @@ public class UDP_Request implements Runnable {
         boolean success = DataUsers.registerUser(user);
 
         if (success) {
-            // sendReply("REGISTER_SUCCESS|" + name);
+            send = new DatagramSocket();
+            buffer = "Success".getBytes();
+            packet = new DatagramPacket(buffer, buffer.length, clientIP, clientPort);
+            send.send(packet);
+            System.out.println("Success, we are able to register: " + name + "," + password);
+
         } else {
-            // sendReply("REGISTER_FAIL|User already exists");
+            send = new DatagramSocket();
+            buffer = "Failed".getBytes();
+            packet = new DatagramPacket(buffer, buffer.length, clientIP, clientPort);
+            send.send(packet);
         }
     }
 

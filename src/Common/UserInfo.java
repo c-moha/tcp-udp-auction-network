@@ -29,28 +29,28 @@ public class UserInfo implements Serializable {
         this.rq = rq;
     }
 
-    public void setName(String rq) {
-        this.rq = rq;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setRole(String rq) {
-        this.rq = rq;
+    public void setRole(String role) {
+        this.role = role;
     }
 
-    public void setipAddress(String rq) {
-        this.rq = rq;
+    public void setipAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
     }
 
-    public void setUDP(String rq) {
-        this.rq = rq;
+    public void setUDP(String udpPort) {
+        this.udpPort = udpPort;
     }
 
-    public void setTCP(String rq) {
-        this.rq = rq;
+    public void setTCP(String tcpPort) {
+        this.tcpPort = tcpPort;
     }
 
-    public void setPassword(String rq) {
-        this.rq = rq;
+    public void setPassword(String pw) {
+        this.Password = pw;
     }
 
     // Gets

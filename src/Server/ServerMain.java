@@ -1,6 +1,7 @@
 package Server;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 
@@ -11,15 +12,21 @@ public class ServerMain {
     private static ServerSocket tcp;
     private static DatagramSocket udp;
 
+    private static final int UDP_PORT = 5200;
+    private static final int TCP_PORT = 6200;
+
     public static void main(String[] args) throws IOException {
-        tcp = new ServerSocket(5000);
-        udp = new DatagramSocket(6000);
+        tcp = new ServerSocket(5200);
+        udp = new DatagramSocket(6200);
+        byte[] buff = new byte[1024];
 
-        Thread UdpThread = new Thread(new UDP_Listener(udp));
-        Thread TcpThread = new Thread(new TCP_Listener(tcp));
+        DatagramPacket pack = new DatagramPacket(buff, buff.length);
 
-        UdpThread.start();
-        TcpThread.start();
+        Thread UdpListenerThread = new Thread(new UDP_Listener(udp));
+        Thread TcpListenerThread = new Thread(new TCP_Listener(tcp));
+
+        UdpListenerThread.start();
+        TcpListenerThread.start();
 
     }
 
