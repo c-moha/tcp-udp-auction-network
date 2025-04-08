@@ -31,6 +31,17 @@ public class DataUsers {
         return true;
     }
 
+    // Deregister:
+    public static boolean deregisterUser(String username) {
+        if (!users.containsKey(username)) {
+            return false; // User doesn't exist
+        }
+
+        users.remove(username); // Remove user from HashMap
+        saveUsers(); // Persist updated users map to file
+        return true;
+    }
+
     // Check login credentials
     public static boolean checkCredentials(String username, String password) {
         if (!users.containsKey(username)) {

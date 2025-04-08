@@ -9,6 +9,8 @@ public class Packet {
     private final String RQ;
     private final List<String> other;
 
+    private static int R_count = 1;
+
     // Constructor
     public Packet(String type, String requestId, String... other) {
         this.type = type;
@@ -55,6 +57,10 @@ public class Packet {
         }
 
         return sb.toString();
+    }
+
+    public static synchronized String getCount() {
+        return String.format("RQ%03d", R_count++);
     }
 
 }
