@@ -1,5 +1,6 @@
 package Server;
 
+import java.io.IOException;
 import java.net.*;
 import java.util.*;
 
@@ -10,14 +11,13 @@ public class BroadcastSystem {
         buyerClients.add(address);
     }
 
-    public static synchronized void broadcastToBuyers(String message) {
-        for (InetSocketAddress address : buyerClients) {
+    public static void broadcastToBuyers(String message) {
+        for (InetSocketAddress buyer : buyerClients) {
             try (DatagramSocket socket = new DatagramSocket()) {
-                byte[] buffer = message.getBytes();
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address.getAddress(),
-                        address.getPort());
+                byte[] data = message.getBytes();
+                DatagramPacket packet = new DatagramPacket(data, data.length, buyer.getAddress(), buyer.getPort());
                 socket.send(packet);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
