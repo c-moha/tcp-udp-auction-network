@@ -10,8 +10,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 
-import Server.BroadcastSystem;
-
 public class DataUsers {
     private static final String FILE_NAME = "clients.dat";
     private static HashMap<String, UserInfo> users = new HashMap<>();
@@ -31,7 +29,6 @@ public class DataUsers {
         }
 
         if (user.getRole().equals("BUYER")) {
-            BroadcastSystem.addBuyer(new InetSocketAddress(user.getIpAddress(), Integer.parseInt(user.getUdpPort())));
         }
         users.put(user.getName(), user);
         // Persistence here by saving the user

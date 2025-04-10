@@ -16,8 +16,8 @@ public class ServerMain {
     private static final int TCP_PORT = 6200;
 
     public static void main(String[] args) throws IOException {
-        tcp = new ServerSocket(5200);
-        udp = new DatagramSocket(6200);
+        tcp = new ServerSocket(UDP_PORT);
+        udp = new DatagramSocket(TCP_PORT);
         byte[] buff = new byte[1024];
 
         DatagramPacket pack = new DatagramPacket(buff, buff.length);

@@ -181,7 +181,6 @@ public class UDP_Request implements Runnable {
                     String.valueOf(item.getPrice()));
             sendUDP(response, clientIP, clientPort);
             System.out.println("Success, we are able to List the item: " + name);
-            BroadcastSystem.broadcastToBuyers("NEW_ITEM|" + rq + "|" + name + "|" + desc + "|" + price);
         } else {
             Packet response = new Packet("LIST_DENIED", Packet.getCount(), item.getName(), item.getDescription(),
                     String.valueOf(item.getPrice()));
