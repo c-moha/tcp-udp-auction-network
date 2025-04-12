@@ -2,6 +2,7 @@
 package Client;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -287,6 +288,13 @@ public class ClienMain {
         }
     }
 
-    static void sendTCP() {
+     public static void sendTCP(String message, String ipAddress, int port) {
+        try (Socket socket = new Socket(ipAddress, port);
+             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
+            writer.println(message);
+            System.out.println("Sent TCP message: " + message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
