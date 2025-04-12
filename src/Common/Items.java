@@ -6,6 +6,7 @@ public class Items implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String rq;
+    private String SellerName;
     private String name;
     private String description;
     private double price;
@@ -14,6 +15,7 @@ public class Items implements Serializable {
 
     public Items(String rq, String name, String description, double price, int duration, long timestamp) {
         this.rq = rq;
+        this.SellerName = SellerName;
         this.name = name;
         this.description = description;
         this.price = price;
@@ -24,6 +26,10 @@ public class Items implements Serializable {
     // Getters
     public String getRq() {
         return rq;
+    }
+
+    public String getSellerName() {
+        return SellerName;
     }
 
     public String getName() {
@@ -69,6 +75,10 @@ public class Items implements Serializable {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public void setSellerName() {
+        this.SellerName = SellerName;
     }
 
     public long getTimeRemainingSeconds() {
