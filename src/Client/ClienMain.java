@@ -5,34 +5,46 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import Common.DataUsers;
 import Common.ItemDatabase;
 import Common.Items;
 import Common.Packet;
+import Common.UserInfo;
 
 public class ClienMain {
     private Socket socket;
     private static final Scanner scanner = new Scanner(System.in);
-    private static final int UDP_PORT = 6200; // Server port
-    private static int CLIENT_UDP_PORT; // 🔥 Will be dynamically chosen
-    private static final int TCP_PORT = 5200;
-    private static boolean isLoggedIn = false;
-    private static String loggedInUsername = "";
-    private static String userRole = "";
 
-    // ✅ Added for broadcast listening
-    private static DatagramSocket broadcastSocket;
-    private static Thread broadcastThread;
+    // Ports of destination (Server)
+    private static final int UDP_PORT = 6200; // Server port
+    private static final int TCP_PORT = 5200;
+
+    // Info
+    private int CLIENT_UDP_PORT;
+    private String ipAddress;
+
+    // State of current client
+    private UserInfo user;
+    private boolean isLoggedIn = false;
+    private String loggedInUsername = "";
+    private String userRole = "";
+
+    public ClienMain() throws IOException {
+        this.user = new UserInfo();
+        this.CLIENT_UDP_PORT = getFreePort();
+        this.ipAddress = getIP();
+    }
 
     public static void main(String[] args) throws IOException {
-        // ✅ Assign dynamic port for this client instance
-        DatagramSocket tempSocket = new DatagramSocket();
-        CLIENT_UDP_PORT = tempSocket.getLocalPort();
-        tempSocket.close();
+        // Setting up the curent Client
+        ClienMain client = new ClienMain();
 
+        // Starting prompt
         System.out.println("The platform is starting...");
         System.out.println("Welcome to our P2P auction system.");
         String command = "";
@@ -45,34 +57,107 @@ public class ClienMain {
 
             switch (command) {
                 case "1":
-                    login();
+                    client.login();
                     break;
                 case "2":
-                    register();
+                    client.register();
                     break;
                 case "3":
-                    deRegister();
+                    client.deRegister();
                     break;
                 default:
                     continue;
             }
 
-            if (isLoggedIn) {
-                if (userRole.equalsIgnoreCase("SELLER")) {
-                    sellerMenu();
-                } else if (userRole.equalsIgnoreCase("BUYER")) {
-                    buyerMenu();
+            if (client.isLoggedIn) {
+
+                if (client.userRole.equalsIgnoreCase("SELLER")) {
+                    client.sellerMenu();
+                } else if (client.userRole.equalsIgnoreCase("BUYER")) {
+                    client.buyerMenu();
                 }
             }
         }
     }
 
+    // Prompt Menu
+    private void sellerMenu() throws UnknownHostException {
+        while (this.isLoggedIn && userRole.equalsIgnoreCase("SELLER")) {
+            System.out.println("\nSELLER MENU:\n1) List an item\n2) Logout");
+            String choice = scanner.nextLine().trim();
+            switch (choice) {
+                case "1":
+                    listItem();
+                    break;
+                case "2":
+                    logout();
+                    return;
+                default:
+                    System.out.println("Invalid choice.");
+            }
+        }
+    }
+
+    private void buyerMenu() throws UnknownHostException {
+        while (isLoggedIn && userRole.equalsIgnoreCase("BUYER")) {
+            System.out.println("\nBUYER MENU:\n1) View active auctions\n2) Bid on item\n3) Logout");
+            String choice = scanner.nextLine().trim();
+            String reply = null;
+            switch (choice) {
+                case "1":
+                    reply = requestItemList();
+                    break;
+                case "2":
+                    reply = bidItem();
+                    break;
+                case "3":
+                    logout();
+                    return;
+                default:
+                    System.out.println("Invalid choice.");
+            }
+
+            if (reply.startsWith("VIEW_ITEMS")) {
+                boolean running = true;
+                while (running) {
+                    System.out.println("1) Subscrivbe to an item\n2) Back");
+                    choice = scanner.nextLine().trim();
+                    switch (choice) {
+                        case "1":
+                            subscribe();
+                            break;
+
+                        case "2":
+                            running = false;
+
+                            break;
+                    }
+
+                }
+            }
+        }
+    }
+
+    // Useful Functions
     public static String getIP() throws UnknownHostException {
         InetAddress ip = InetAddress.getLocalHost();
         return ip.getHostAddress();
     }
 
-    static void login() throws UnknownHostException {
+    public static int getFreePort() throws IOException {
+        ServerSocket socket = new ServerSocket(0); // 0 = get available TCP port
+        int availablePort = socket.getLocalPort();
+        socket.close();
+        return availablePort;
+    }
+
+    public String convertPacketToString(DatagramPacket packet) {
+        String reply = new String(packet.getData(), 0, packet.getLength()).trim();
+        return reply;
+    }
+
+    // Requests
+    private void login() throws UnknownHostException {
         String Username, Pw;
         System.out.printf("Please Enter Your Credentials to LogIn");
         do {
@@ -88,7 +173,14 @@ public class ClienMain {
         sendUDP(pack);
     }
 
-    static void register() throws UnknownHostException {
+    private void logout() {
+        this.isLoggedIn = false;
+        loggedInUsername = "";
+        userRole = "";
+        System.out.println("Logged out.");
+    }
+
+    private void register() throws UnknownHostException {
         String regUsername, regPw, regRole;
         System.out.printf("Please Enter Your Credentials to Register\n");
 
@@ -114,7 +206,7 @@ public class ClienMain {
         sendUDP(pack);
     }
 
-    static void deRegister() {
+    private void deRegister() {
         String deregUsername, deregPw;
         System.out.println("Please Enter Your Credentials to De-Register");
 
@@ -132,9 +224,60 @@ public class ClienMain {
         sendUDP(pack);
     }
 
-    static void sendUDP(Packet pack) {
+    private String bidItem() {
+        System.out.print("Enter the item name to bid on: ");
+        String itemName = scanner.nextLine().trim();
+        System.out.print("Enter your bid amount: ");
+        String bidInput = scanner.nextLine().trim();
+        String reply = null;
+
+        try {
+            double bidAmount = Double.parseDouble(bidInput);
+            Packet pack = new Packet("BID_ITEM", Packet.getCount(), itemName, String.valueOf(bidAmount));
+            reply = sendUDP(pack);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid bid amount format.");
+        }
+        return reply;
+
+    }
+
+    private void listItem() throws UnknownHostException {
+        System.out.print("Item Name: ");
+        String itemName = scanner.nextLine().trim();
+        System.out.print("Description: ");
+        String description = scanner.nextLine().trim();
+        System.out.print("Starting Price: ");
+        double price = Double.parseDouble(scanner.nextLine().trim());
+        System.out.print("Auction Duration (in seconds): ");
+        int duration = Integer.parseInt(scanner.nextLine().trim());
+
+        Packet pack = new Packet("LIST_ITEM", Packet.getCount(), itemName, description, String.valueOf(price),
+                String.valueOf(duration), user.getName());
+        sendUDP(pack);
+    }
+
+    private String requestItemList() {
+        Packet pack = new Packet("VIEW_ITEMS", Packet.getCount());
+        return sendUDP(pack);
+    }
+
+    private String subscribe() throws UnknownHostException {
+        String reply = null;
+        String list = requestItemList();
+        if (list.contains("No active items available")) {
+            System.out.println("There is nothing to subscribe");
+        } else {
+            System.out.println("Please choose the element that you want to subscribe to:");
+        }
+        return reply;
+    }
+
+    // Core Communication with Server
+    private String sendUDP(Packet pack) {
         String message = pack.getMessage();
         System.out.println("Sending this message:" + message);
+        String reply = null;
         try {
             InetAddress serverAddress = InetAddress.getByName("localhost");
             int serverPort = UDP_PORT;
@@ -148,15 +291,25 @@ public class ClienMain {
             DatagramPacket response = new DatagramPacket(buffer, buffer.length);
             socket.receive(response);
 
-            String reply = new String(response.getData(), 0, response.getLength()).trim();
+            reply = new String(response.getData(), 0, response.getLength()).trim();
 
             if (reply.startsWith("LOGGED-IN")) {
                 isLoggedIn = true;
                 String[] elements = reply.split("\\|");
+
+                // Get the current user role
                 userRole = elements[elements.length - 1].trim();
-                if (userRole.equalsIgnoreCase("BUYER")) {
-                    startBroadcastListener(); // ✅ Start broadcast thread
-                }
+
+                // Get the current user and update the port/address at which it is running
+                String userName = elements[elements.length - 2].trim();
+                this.user = DataUsers.getUser(userName);
+                user.setUDP(Integer.toString(CLIENT_UDP_PORT));
+                DataUsers.updateBuyers(userName, Integer.toString(CLIENT_UDP_PORT));
+
+                // Starting the notification listener
+                Thread notification = new Thread(new NotificationListener(CLIENT_UDP_PORT));
+                notification.start();
+
             }
 
             System.out.println("Server replied: " + reply);
@@ -164,129 +317,14 @@ public class ClienMain {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    static void sellerMenu() throws UnknownHostException {
-        while (isLoggedIn && userRole.equalsIgnoreCase("SELLER")) {
-            System.out.println("\nSELLER MENU:\n1) List an item\n2) Logout");
-            String choice = scanner.nextLine().trim();
-            switch (choice) {
-                case "1":
-                    listItem();
-                    break;
-                case "2":
-                    logout();
-                    return;
-                default:
-                    System.out.println("Invalid choice.");
-            }
-        }
-    }
-
-    static void buyerMenu() throws UnknownHostException {
-        while (isLoggedIn && userRole.equalsIgnoreCase("BUYER")) {
-            System.out.println("\nBUYER MENU:\n1) View active auctions\n2) Bid on item\n3) Logout");
-            String choice = scanner.nextLine().trim();
-            switch (choice) {
-                case "1":
-                    requestItemList();
-                    break;
-                case "2":
-                    bidItem();
-                    break;
-                case "3":
-                    logout();
-                    return;
-                default:
-                    System.out.println("Invalid choice.");
-            }
-        }
-    }
-
-    public static void logout() {
-        isLoggedIn = false;
-        loggedInUsername = "";
-        userRole = "";
-        stopBroadcastListener(); // ✅ Stop thread
-        System.out.println("Logged out.");
-    }
-
-    public static void bidItem() {
-        System.out.print("Enter the item name to bid on: ");
-        String itemName = scanner.nextLine().trim();
-        System.out.print("Enter your bid amount: ");
-        String bidInput = scanner.nextLine().trim();
-
-        try {
-            double bidAmount = Double.parseDouble(bidInput);
-            Packet pack = new Packet("BID_ITEM", Packet.getCount(), itemName, String.valueOf(bidAmount));
-            sendUDP(pack);
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid bid amount format.");
-        }
-    }
-
-    static void listItem() throws UnknownHostException {
-        System.out.print("Item Name: ");
-        String itemName = scanner.nextLine().trim();
-        System.out.print("Description: ");
-        String description = scanner.nextLine().trim();
-        System.out.print("Starting Price: ");
-        double price = Double.parseDouble(scanner.nextLine().trim());
-        System.out.print("Auction Duration (in seconds): ");
-        int duration = Integer.parseInt(scanner.nextLine().trim());
-
-        Packet pack = new Packet("LIST_ITEM", Packet.getCount(), itemName, description, String.valueOf(price),
-                String.valueOf(duration));
-        sendUDP(pack);
-    }
-
-    static void requestItemList() {
-        Packet pack = new Packet("VIEW_ITEMS", Packet.getCount());
-        sendUDP(pack);
-    }
-
-    // ✅ Background listener
-    public static void startBroadcastListener() {
-        broadcastThread = new Thread(() -> {
-            try {
-                broadcastSocket = new DatagramSocket(CLIENT_UDP_PORT);
-                byte[] buffer = new byte[1024];
-                while (!broadcastSocket.isClosed()) {
-                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                    broadcastSocket.receive(packet);
-                    String message = new String(packet.getData(), 0, packet.getLength()).trim();
-
-                    if (message.startsWith("NEW_ITEM|")) {
-                        String[] parts = message.split("\\|");
-                        if (parts.length >= 5) {
-                            System.out.println("\n📢 NEW ITEM LISTED!");
-                            System.out.println("Item: " + parts[2]);
-                            System.out.println("Description: " + parts[3]);
-                            System.out.println("Price: " + parts[4]);
-                            System.out.println("-----------------------------");
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                if (!broadcastSocket.isClosed())
-                    e.printStackTrace();
-            }
-        });
-        broadcastThread.start();
-    }
-
-    public static void stopBroadcastListener() {
-        try {
-            if (broadcastSocket != null && !broadcastSocket.isClosed())
-                broadcastSocket.close();
-            if (broadcastThread != null && broadcastThread.isAlive())
-                broadcastThread.interrupt();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        return reply;
     }
 
     static void sendTCP() {
+    }
+
+    // Getters
+    private int getPort() {
+        return CLIENT_UDP_PORT;
     }
 }

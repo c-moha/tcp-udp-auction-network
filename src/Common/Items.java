@@ -1,6 +1,7 @@
 package Common;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
 public class Items implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -11,14 +12,18 @@ public class Items implements Serializable {
     private double price;
     private int duration; // in seconds
     private long timestamp; // when the item was listed
+    private ArrayList<UserInfo> subscriber;
+    private UserInfo owner;
 
-    public Items(String rq, String name, String description, double price, int duration, long timestamp) {
+    public Items(String rq, String name, String description, double price, int duration, long timestamp,
+            String owner) {
         this.rq = rq;
         this.name = name;
         this.description = description;
         this.price = price;
         this.duration = duration;
         this.timestamp = System.currentTimeMillis();
+        this.owner = DataUsers.getUser(owner);
     }
 
     // Getters
@@ -44,6 +49,10 @@ public class Items implements Serializable {
 
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public ArrayList<UserInfo> getSubscriber() {
+        return this.subscriber;
     }
 
     // Setters:
@@ -77,6 +86,11 @@ public class Items implements Serializable {
         long remaining = endTime - currentTime;
 
         return Math.max(0, remaining / 1000); // Return in seconds, no negative values
+    }
+
+    // Adders:
+    public void addSubscriber(UserInfo user) {
+        this.subscriber.add(user);
     }
 
     @Override

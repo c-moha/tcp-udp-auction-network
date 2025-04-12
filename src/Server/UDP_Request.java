@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
 import Common.DataUsers;
 import Common.ItemDatabase;
@@ -60,7 +62,12 @@ public class UDP_Request implements Runnable {
                 break;
 
             case "LIST_ITEM":
-                listItemReq(parts);
+                try {
+                    listItemReq(parts);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 break;
 
             case "NEW_ITEM":
@@ -149,7 +156,7 @@ public class UDP_Request implements Runnable {
         Boolean success = DataUsers.checkCredentials(name, password);
 
         if (success) {
-            Packet response = new Packet("LOGGED-IN", Packet.getCount(), DataUsers.getUser(name).getRole());
+            Packet response = new Packet("LOGGED-IN", Packet.getCount(), name, DataUsers.getUser(name).getRole());
             sendUDP(response, clientIP, clientPort);
             System.out.println("Success, we are able to log-in: " + name + "," + password);
 
@@ -160,8 +167,8 @@ public class UDP_Request implements Runnable {
         }
     }
 
-    public void listItemReq(String[] parts) {
-        if (parts.length != 6) {
+    public void listItemReq(String[] parts) throws IOException {
+        if (parts.length != 7) {
             System.out.println("Wrong format");
             return;
         }
@@ -171,17 +178,18 @@ public class UDP_Request implements Runnable {
         String desc = parts[3];
         double price = Double.parseDouble(parts[4]);
         int duration = Integer.parseInt(parts[5]);
+        String userName = parts[6];
 
-        Items item = new Items(rq, name, desc, price, duration, System.currentTimeMillis());
+        Items item = new Items(rq, name, desc, price, duration, System.currentTimeMillis(), userName);
 
-        boolean success = ItemDatabase.addItem(item); // You need to implement ItemDatabase
+        boolean success = ItemDatabase.addItem(item);
 
         if (success) {
             Packet response = new Packet("ITEM_LISTED", Packet.getCount(), item.getName(), item.getDescription(),
                     String.valueOf(item.getPrice()));
             sendUDP(response, clientIP, clientPort);
+            DataUsers.notifyBuyers();
             System.out.println("Success, we are able to List the item: " + name);
-            BroadcastSystem.broadcastToBuyers("NEW_ITEM|" + rq + "|" + name + "|" + desc + "|" + price);
         } else {
             Packet response = new Packet("LIST_DENIED", Packet.getCount(), item.getName(), item.getDescription(),
                     String.valueOf(item.getPrice()));
