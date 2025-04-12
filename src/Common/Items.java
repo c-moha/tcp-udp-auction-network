@@ -14,6 +14,8 @@ public class Items implements Serializable {
     private long timestamp; // when the item was listed
     private ArrayList<UserInfo> subscriber;
     private UserInfo owner;
+    private UserInfo HighestBidder;
+    
 
     public Items(String rq, String name, String description, double price, int duration, long timestamp,
             String owner) {
@@ -24,7 +26,15 @@ public class Items implements Serializable {
         this.duration = duration;
         this.timestamp = System.currentTimeMillis();
         this.owner = DataUsers.getUser(owner);
+
+
     }
+
+    public UserInfo getSellerName() {
+        return owner;
+    }
+
+   
 
     // Getters
     public String getRq() {
@@ -79,6 +89,8 @@ public class Items implements Serializable {
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
+
+    
 
     public long getTimeRemainingSeconds() {
         long currentTime = System.currentTimeMillis();
