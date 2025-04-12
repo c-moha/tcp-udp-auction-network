@@ -10,9 +10,11 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import Common.DataUsers;
 import Common.ItemDatabase;
 import Common.Items;
 import Common.Packet;
+import Common.UserInfo;
 
 public class ClienMain {
     private Socket socket;
@@ -27,11 +29,13 @@ public class ClienMain {
     private String ipAddress;
 
     // State of current client
+    private UserInfo user;
     private boolean isLoggedIn = false;
     private String loggedInUsername = "";
     private String userRole = "";
 
     public ClienMain() throws IOException {
+        this.user = new UserInfo();
         this.CLIENT_UDP_PORT = getFreePort();
         this.ipAddress = getIP();
     }
@@ -66,6 +70,7 @@ public class ClienMain {
             }
 
             if (client.isLoggedIn) {
+
                 if (client.userRole.equalsIgnoreCase("SELLER")) {
                     client.sellerMenu();
                 } else if (client.userRole.equalsIgnoreCase("BUYER")) {
@@ -97,18 +102,38 @@ public class ClienMain {
         while (isLoggedIn && userRole.equalsIgnoreCase("BUYER")) {
             System.out.println("\nBUYER MENU:\n1) View active auctions\n2) Bid on item\n3) Logout");
             String choice = scanner.nextLine().trim();
+            String reply = null;
             switch (choice) {
                 case "1":
-                    requestItemList();
+                    reply = requestItemList();
                     break;
                 case "2":
-                    bidItem();
+                    reply = bidItem();
                     break;
                 case "3":
                     logout();
                     return;
                 default:
                     System.out.println("Invalid choice.");
+            }
+
+            if (reply.startsWith("VIEW_ITEMS")) {
+                boolean running = true;
+                while (running) {
+                    System.out.println("1) Subscrivbe to an item\n2) Back");
+                    choice = scanner.nextLine().trim();
+                    switch (choice) {
+                        case "1":
+                            subscribe();
+                            break;
+
+                        case "2":
+                            running = false;
+
+                            break;
+                    }
+
+                }
             }
         }
     }
@@ -124,6 +149,11 @@ public class ClienMain {
         int availablePort = socket.getLocalPort();
         socket.close();
         return availablePort;
+    }
+
+    public String convertPacketToString(DatagramPacket packet) {
+        String reply = new String(packet.getData(), 0, packet.getLength()).trim();
+        return reply;
     }
 
     // Requests
@@ -194,19 +224,22 @@ public class ClienMain {
         sendUDP(pack);
     }
 
-    private void bidItem() {
+    private String bidItem() {
         System.out.print("Enter the item name to bid on: ");
         String itemName = scanner.nextLine().trim();
         System.out.print("Enter your bid amount: ");
         String bidInput = scanner.nextLine().trim();
+        String reply = null;
 
         try {
             double bidAmount = Double.parseDouble(bidInput);
             Packet pack = new Packet("BID_ITEM", Packet.getCount(), itemName, String.valueOf(bidAmount));
-            sendUDP(pack);
+            reply = sendUDP(pack);
         } catch (NumberFormatException e) {
             System.out.println("Invalid bid amount format.");
         }
+        return reply;
+
     }
 
     private void listItem() throws UnknownHostException {
@@ -220,19 +253,31 @@ public class ClienMain {
         int duration = Integer.parseInt(scanner.nextLine().trim());
 
         Packet pack = new Packet("LIST_ITEM", Packet.getCount(), itemName, description, String.valueOf(price),
-                String.valueOf(duration));
+                String.valueOf(duration), user.getName());
         sendUDP(pack);
     }
 
-    private void requestItemList() {
+    private String requestItemList() {
         Packet pack = new Packet("VIEW_ITEMS", Packet.getCount());
-        sendUDP(pack);
+        return sendUDP(pack);
+    }
+
+    private String subscribe() throws UnknownHostException {
+        String reply = null;
+        String list = requestItemList();
+        if (list.contains("No active items available")) {
+            System.out.println("There is nothing to subscribe");
+        } else {
+            System.out.println("Please choose the element that you want to subscribe to:");
+        }
+        return reply;
     }
 
     // Core Communication with Server
-    private void sendUDP(Packet pack) {
+    private String sendUDP(Packet pack) {
         String message = pack.getMessage();
         System.out.println("Sending this message:" + message);
+        String reply = null;
         try {
             InetAddress serverAddress = InetAddress.getByName("localhost");
             int serverPort = UDP_PORT;
@@ -246,12 +291,20 @@ public class ClienMain {
             DatagramPacket response = new DatagramPacket(buffer, buffer.length);
             socket.receive(response);
 
-            String reply = new String(response.getData(), 0, response.getLength()).trim();
+            reply = new String(response.getData(), 0, response.getLength()).trim();
 
             if (reply.startsWith("LOGGED-IN")) {
                 isLoggedIn = true;
                 String[] elements = reply.split("\\|");
+
+                // Get the current user role
                 userRole = elements[elements.length - 1].trim();
+
+                // Get the current user and update the port/address at which it is running
+                String userName = elements[elements.length - 2].trim();
+                this.user = DataUsers.getUser(userName);
+                user.setUDP(Integer.toString(CLIENT_UDP_PORT));
+                DataUsers.updateBuyers(userName, Integer.toString(CLIENT_UDP_PORT));
 
                 // Starting the notification listener
                 Thread notification = new Thread(new NotificationListener(CLIENT_UDP_PORT));
@@ -264,6 +317,7 @@ public class ClienMain {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return reply;
     }
 
     static void sendTCP() {

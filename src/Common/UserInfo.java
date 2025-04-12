@@ -13,6 +13,9 @@ public class UserInfo implements Serializable {
     private String tcpPort;
     private String Password;
 
+    public UserInfo() {
+    };
+
     public UserInfo(String rq, String name, String role, String ipAddress, String udpPort, String tcpPort,
             String password) {
         this.rq = rq;

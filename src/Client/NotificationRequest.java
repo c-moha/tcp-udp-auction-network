@@ -12,6 +12,16 @@ public class NotificationRequest implements Runnable {
     @Override
     public void run() {
 
+        System.out.println("Notification caught something");
+        String message = convertPacketToString(packet);
+
+        System.out.println(message);
+
+    }
+
+    public String convertPacketToString(DatagramPacket packet) {
+        String reply = new String(packet.getData(), 0, packet.getLength()).trim();
+        return reply;
     }
 
 }

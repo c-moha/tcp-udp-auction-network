@@ -19,6 +19,7 @@ public class NotificationListener implements Runnable {
 
     @Override
     public void run() {
+        System.out.println("Notificatio Listener running... and the port is: " + Integer.toString(port));
         try {
             Listener = new DatagramSocket(port);
         } catch (SocketException e) {
