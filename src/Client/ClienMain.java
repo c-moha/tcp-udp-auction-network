@@ -233,7 +233,8 @@ public class ClienMain {
 
         try {
             double bidAmount = Double.parseDouble(bidInput);
-            Packet pack = new Packet("BID_ITEM", Packet.getCount(), itemName, String.valueOf(bidAmount));
+            Packet pack = new Packet("BID_ITEM", Packet.getCount(), itemName, String.valueOf(bidAmount),
+                    user.getName());
             reply = sendUDP(pack);
         } catch (NumberFormatException e) {
             System.out.println("Invalid bid amount format.");
@@ -269,6 +270,7 @@ public class ClienMain {
             System.out.println("There is nothing to subscribe");
         } else {
             System.out.println("Please choose the element that you want to subscribe to:");
+
         }
         return reply;
     }

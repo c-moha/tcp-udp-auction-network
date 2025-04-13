@@ -79,7 +79,12 @@ public class UDP_Request implements Runnable {
                 break;
 
             case "BID_ITEM":
-                bidItemReq(parts);
+                try {
+                    bidItemReq(parts);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                 break;
 
             // Continue here for the different types of requests/commands
@@ -187,6 +192,7 @@ public class UDP_Request implements Runnable {
         if (success) {
             Packet response = new Packet("ITEM_LISTED", Packet.getCount(), item.getName(), item.getDescription(),
                     String.valueOf(item.getPrice()));
+
             sendUDP(response, clientIP, clientPort);
             DataUsers.notifyBuyers();
             System.out.println("Success, we are able to List the item: " + name);
@@ -233,13 +239,14 @@ public class UDP_Request implements Runnable {
         sendUDP(response, clientIP, clientPort);
     }
 
-    public void bidItemReq(String[] parts) {
-        if (parts.length != 4) {
+    public void bidItemReq(String[] parts) throws IOException {
+        if (parts.length != 5) {
             sendUDP(new Packet("BID_FAILED", Packet.getCount(), "Invalid format"), clientIP, clientPort);
             return;
         }
 
         String itemName = parts[2];
+        String userName = parts[4];
         double bidAmount;
 
         try {
@@ -262,6 +269,9 @@ public class UDP_Request implements Runnable {
 
         // Update price
         item.setPrice(bidAmount);
+        item.setHighestBidder(userName);
+        ItemDatabase.loadItems();
+        ItemDatabase.notifyBid(item.getName(), userName);
         ItemDatabase.saveItems(); // Save updated state
 
         sendUDP(new Packet("BID_SUCCESS", Packet.getCount(), item.getName(), String.valueOf(item.getPrice())), clientIP,

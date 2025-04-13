@@ -1,6 +1,8 @@
 package Common;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 public class UserInfo implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -12,6 +14,9 @@ public class UserInfo implements Serializable {
     private String udpPort;
     private String tcpPort;
     private String Password;
+    private ArrayList<Items> subscribedItems;
+    private ArrayList<Items> highestBidItem;
+    private ArrayList<Items> postedItems;
 
     public UserInfo() {
     };
@@ -25,6 +30,8 @@ public class UserInfo implements Serializable {
         this.udpPort = udpPort;
         this.tcpPort = tcpPort;
         this.Password = password;
+        this.highestBidItem = new ArrayList<>();
+        this.postedItems = new ArrayList<>();
     }
 
     // Setters
@@ -83,6 +90,20 @@ public class UserInfo implements Serializable {
 
     public String getPassword() {
         return Password;
+    }
+
+    public ArrayList<Items> getPostedItem() {
+        return postedItems;
+
+    }
+
+    // Adders
+    public void addHighestBidItem(String itemName) {
+        this.highestBidItem.add(ItemDatabase.getItemByName(itemName));
+    }
+
+    public void addPostedItems(String itemName) {
+        this.postedItems.add(ItemDatabase.getItemByName(itemName));
     }
 
     @Override

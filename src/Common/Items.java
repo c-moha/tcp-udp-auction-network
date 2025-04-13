@@ -12,8 +12,9 @@ public class Items implements Serializable {
     private double price;
     private int duration; // in seconds
     private long timestamp; // when the item was listed
+    private UserInfo highestBidder;
     private ArrayList<UserInfo> subscriber;
-    private UserInfo owner;
+    public UserInfo owner;
 
     public Items(String rq, String name, String description, double price, int duration, long timestamp,
             String owner) {
@@ -24,6 +25,7 @@ public class Items implements Serializable {
         this.duration = duration;
         this.timestamp = System.currentTimeMillis();
         this.owner = DataUsers.getUser(owner);
+        this.subscriber = new ArrayList<>();
     }
 
     // Getters
@@ -51,8 +53,20 @@ public class Items implements Serializable {
         return timestamp;
     }
 
+    public long getTimeRemainingSeconds() {
+        long currentTime = System.currentTimeMillis();
+        long endTime = timestamp + (duration * 1000L); // Convert duration from sec to ms
+        long remaining = endTime - currentTime;
+
+        return Math.max(0, remaining / 1000); // Return in seconds, no negative values
+    }
+
     public ArrayList<UserInfo> getSubscriber() {
         return this.subscriber;
+    }
+
+    public UserInfo getOwner() {
+        return this.owner;
     }
 
     // Setters:
@@ -80,12 +94,12 @@ public class Items implements Serializable {
         this.timestamp = timestamp;
     }
 
-    public long getTimeRemainingSeconds() {
-        long currentTime = System.currentTimeMillis();
-        long endTime = timestamp + (duration * 1000L); // Convert duration from sec to ms
-        long remaining = endTime - currentTime;
+    public void setHighestBidder(String userName) {
+        this.highestBidder = DataUsers.getUser(userName);
+    }
 
-        return Math.max(0, remaining / 1000); // Return in seconds, no negative values
+    public void setOwnerPort(String port) {
+        this.owner.setUDP(port);
     }
 
     // Adders:

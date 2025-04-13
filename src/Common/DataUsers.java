@@ -116,7 +116,22 @@ public class DataUsers {
             buyers.put(key, user);
             System.out.println("We are in the updateBuyers and the port nimber: " + port);
         }
+        // This is to update the "owner" of the items
+        else {
+            UserInfo seller = users.get(key);
+            for (Items item : ItemDatabase.items) {
+                if (item.getOwner().getName().equals(key)) {
+                    item.getOwner().setUDP(port); // Directly update the object
+                }
+            }
+            ItemDatabase.saveItems();
+
+            System.out.println("We are in the updateBuyers for sellers and the port nimber: " + port);
+        }
         saveUsers();
+        loadUsers();
+        ItemDatabase.saveItems();
+        ItemDatabase.loadItems();
     }
 
     // Load the HashMap from a file
